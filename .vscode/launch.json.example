@@ -1,0 +1,36 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "testing (debug mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug",
+            "args": [
+                "--dart-define", "ENCRYPTION_KEY=VALUE",
+                "--dart-define", "IV_KEY=sD4rV7PNOXlr0R/lyqa4QQ==",
+            ],
+            "console": "debugConsole",
+        },
+        {
+            "name": "testing (profile mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "args": [
+                "--dart-define", "ENCRYPTION_KEY=VALUE",
+                "--dart-define", "IV_KEY=sD4rV7PNOXlr0R/lyqa4QQ==",
+            ],
+        },
+        {
+            "name": "testing (release mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "args": [
+                "--dart-define", "ENCRYPTION_KEY=VALUE",
+                "--dart-define", "IV_KEY=sD4rV7PNOXlr0R/lyqa4QQ==",
+            ],
+        }
+    ]
+}
