@@ -50,7 +50,7 @@ class _LoginViewState extends State<LoginView> {
         
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const RegisterView()),
+          MaterialPageRoute(builder: (_) => const HomeView()),
         );
         
       } else {
@@ -68,28 +68,34 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> _handleGoogleLogin() async {
-    setState(() => _isGoogleLoading = true);
+  setState(() => _isGoogleLoading = true);
 
-    try {
-      final result = await _authController.loginWithGoogle();
+  try {
+    final result = await _authController.loginWithGoogle();
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      if (result.user != null) {
-        _showSuccessMessage('Login Google berhasil!');
-      } else {
-        _showErrorMessage(result.error ?? 'Login Google gagal. Silakan coba lagi.');
-      }
-    } catch (e) {
-      if (mounted) {
-        _showErrorMessage('Terjadi kesalahan: ${e.toString()}');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isGoogleLoading = false);
-      }
+    if (result.user != null) {
+      _showSuccessMessage('Login Google berhasil!');
+      
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeView()),
+      );
+      
+    } else {
+      _showErrorMessage(result.error ?? 'Login Google gagal. Silakan coba lagi.');
+    }
+  } catch (e) {
+    if (mounted) {
+      _showErrorMessage('Terjadi kesalahan: ${e.toString()}');
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isGoogleLoading = false);
     }
   }
+}
 
   void _navigateToRegister() {
     Navigator.push(

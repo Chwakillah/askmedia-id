@@ -9,6 +9,7 @@ class AppColors {
   // Background
   static const Color background = Color(0xFFFAFBFE);
   static const Color surfaceLight = Color(0xFFFFFFFF);
+  static const Color cardBackground = Color.fromARGB(255, 255, 255, 255);
   
   // Input & Interactive
   static const Color inputBackground = Color(0xFFF0F4FA);
