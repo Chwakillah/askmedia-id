@@ -8,7 +8,7 @@ import '../widget/tittle.text.dart';
 import '../widget/auth_card.dart';
 import '../widget/google_button.dart';
 import '../views/register_view.dart';
-import '../home/home_view.dart';
+import '../views/home_view.dart';
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
 
@@ -50,7 +50,7 @@ class _LoginViewState extends State<LoginView> {
         
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const HomeView()),
+          MaterialPageRoute(builder: (_) => const RegisterView()),
         );
         
       } else {
