@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../controllers/auth_controller.dart';
+import '../controllers/auth_controller.dart';
+import '../controllers/user_controller.dart';
 import '../themes/app_collors.dart';
 import '../widget/custom_input_field.dart';
 import '../widget/primmary_button.dart';
@@ -7,16 +8,18 @@ import '../widget/secondary_button.dart';
 import '../widget/tittle.text.dart';
 import '../widget/auth_card.dart';
 import '../widget/google_button.dart';
-import '../views/register_view.dart';
-import '../views/home_view.dart';
+import 'register_view.dart';
+
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
 
   @override
   State<LoginView> createState() => _LoginViewState();
 }
+
 class _LoginViewState extends State<LoginView> {
   final _authController = AuthController();
+  final _userController = UserController();
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -46,13 +49,11 @@ class _LoginViewState extends State<LoginView> {
       if (!mounted) return;
 
       if (result.user != null) {
+        // Ensure user document exists
+        await _userController.ensureUserDocument(result.user!);
+        
         _showSuccessMessage('Login berhasil! Selamat datang kembali.');
-        
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeView()),
-        );
-        
+        // AuthStateHandler akan otomatis navigate ke HomeView
       } else {
         _showErrorMessage(result.error ?? 'Login gagal. Silakan coba lagi.');
       }
@@ -68,34 +69,32 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> _handleGoogleLogin() async {
-  setState(() => _isGoogleLoading = true);
+    setState(() => _isGoogleLoading = true);
 
-  try {
-    final result = await _authController.loginWithGoogle();
+    try {
+      final result = await _authController.loginWithGoogle();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (result.user != null) {
-      _showSuccessMessage('Login Google berhasil!');
-      
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeView()),
-      );
-      
-    } else {
-      _showErrorMessage(result.error ?? 'Login Google gagal. Silakan coba lagi.');
-    }
-  } catch (e) {
-    if (mounted) {
-      _showErrorMessage('Terjadi kesalahan: ${e.toString()}');
-    }
-  } finally {
-    if (mounted) {
-      setState(() => _isGoogleLoading = false);
+      if (result.user != null) {
+        // Ensure user document exists
+        await _userController.ensureUserDocument(result.user!);
+        
+        _showSuccessMessage('Login Google berhasil!');
+        // AuthStateHandler akan otomatis navigate ke HomeView
+      } else {
+        _showErrorMessage(result.error ?? 'Login Google gagal. Silakan coba lagi.');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorMessage('Terjadi kesalahan: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isGoogleLoading = false);
+      }
     }
   }
-}
 
   void _navigateToRegister() {
     Navigator.push(
@@ -111,10 +110,17 @@ class _LoginViewState extends State<LoginView> {
   void _showSuccessMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.green[600],
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }
@@ -122,10 +128,17 @@ class _LoginViewState extends State<LoginView> {
   void _showErrorMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red[600],
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }

@@ -1,11 +1,41 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
-import '../models/auth_result.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/auth_result.dart';
+import '../models/user_model.dart';
 
 class AuthController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Helper method to ensure user document exists
+  Future<void> _ensureUserDocument(User firebaseUser) async {
+    try {
+      final userDoc = _firestore.collection('users').doc(firebaseUser.uid);
+      final docSnapshot = await userDoc.get();
+
+      if (!docSnapshot.exists) {
+        // Create new user document
+        final newUser = UserModel(
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName ?? firebaseUser.email?.split('@')[0] ?? 'User',
+          email: firebaseUser.email ?? '',
+          bio: '',
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          updatedAt: DateTime.now().millisecondsSinceEpoch,
+        );
+
+        await userDoc.set(newUser.toMap());
+        print('✅ User document created for: ${firebaseUser.uid}');
+      } else {
+        print('✅ User document already exists for: ${firebaseUser.uid}');
+      }
+    } catch (e) {
+      print('❌ Error ensuring user document: $e');
+      rethrow;
+    }
+  }
 
   Future<AuthResult> loginWithEmail(String email, String password) async {
     try {
@@ -15,13 +45,32 @@ class AuthController {
       );
 
       final user = userCredential.user;
-      if (user != null && !user.emailVerified) {
-        return AuthResult(user: null, error: 'Email belum diverifikasi.');
+      if (user != null) {
+        if (!user.emailVerified) {
+          return AuthResult(user: null, error: 'Email belum diverifikasi.');
+        }
+
+        // Ensure user document exists
+        await _ensureUserDocument(user);
       }
 
       return AuthResult(user: user, error: null);
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = 'Login gagal. Cek email & password.';
+      
+      if (e.code == 'user-not-found') {
+        errorMessage = 'Email tidak terdaftar.';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Password salah.';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'Format email tidak valid.';
+      } else if (e.code == 'user-disabled') {
+        errorMessage = 'Akun ini telah dinonaktifkan.';
+      }
+
+      return AuthResult(user: null, error: errorMessage);
     } catch (e) {
-      return AuthResult(user: null, error: 'Login gagal. Cek email & password.');
+      return AuthResult(user: null, error: 'Login gagal. Silakan coba lagi.');
     }
   }
 
@@ -30,11 +79,11 @@ class AuthController {
       UserCredential userCredential;
       
       if (kIsWeb) {
-        // SOLUSI 1: Popup flow untuk web (paling reliable)
+        // Popup flow untuk web
         final googleProvider = GoogleAuthProvider();
         userCredential = await _auth.signInWithPopup(googleProvider);
       } else {
-        // SOLUSI 2: google_sign_in package untuk mobile
+        // google_sign_in package untuk mobile
         final GoogleSignIn googleSignIn = GoogleSignIn(
           scopes: ['email'],
         );
@@ -56,7 +105,13 @@ class AuthController {
         userCredential = await _auth.signInWithCredential(credential);
       }
       
-      return AuthResult(user: userCredential.user, error: null);
+      final user = userCredential.user;
+      if (user != null) {
+        // PENTING: Ensure user document exists setelah Google login
+        await _ensureUserDocument(user);
+      }
+      
+      return AuthResult(user: user, error: null);
       
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Google login gagal.';
@@ -67,10 +122,13 @@ class AuthController {
         errorMessage = 'Popup diblokir. Izinkan popup untuk situs ini.';
       } else if (e.code == 'web-storage-unsupported') {
         errorMessage = 'Browser tidak mendukung storage. Coba browser lain.';
+      } else if (e.code == 'account-exists-with-different-credential') {
+        errorMessage = 'Email sudah terdaftar dengan metode login lain.';
       }
       
       return AuthResult(user: null, error: errorMessage);
     } catch (e) {
+      print('❌ Error during Google login: $e');
       return AuthResult(user: null, error: 'Terjadi kesalahan: ${e.toString()}');
     }
   }
@@ -88,20 +146,38 @@ class AuthController {
 
       final user = userCredential.user;
       if (user != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-          'id': user.uid,
-          'name': name,
-          'bio': '',
-          'email': email,
-          'createdAt': DateTime.now().millisecondsSinceEpoch,
-          'updatedAt': DateTime.now().millisecondsSinceEpoch,
-        });
+        // Create user document
+        final newUser = UserModel(
+          id: user.uid,
+          name: name.trim().isEmpty ? 'User' : name.trim(),
+          email: email,
+          bio: '',
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          updatedAt: DateTime.now().millisecondsSinceEpoch,
+        );
 
+        await _firestore.collection('users').doc(user.uid).set(newUser.toMap());
+        print('✅ User document created during registration: ${user.uid}');
+
+        // Send email verification
         await user.sendEmailVerification();
       }
 
       return AuthResult(user: user, error: null);
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = 'Pendaftaran gagal. Silakan coba lagi.';
+
+      if (e.code == 'email-already-in-use') {
+        errorMessage = 'Email sudah terdaftar. Silakan login.';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'Format email tidak valid.';
+      } else if (e.code == 'weak-password') {
+        errorMessage = 'Password terlalu lemah. Minimal 6 karakter.';
+      }
+
+      return AuthResult(user: null, error: errorMessage);
     } catch (e) {
+      print('❌ Error during registration: $e');
       return AuthResult(
         user: null,
         error: 'Pendaftaran gagal. Silakan coba lagi.',
@@ -109,17 +185,68 @@ class AuthController {
     }
   }
 
+  // Method to check and fix existing users without documents
+  Future<bool> checkAndFixUserDocument() async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) return false;
+
+      await _ensureUserDocument(currentUser);
+      return true;
+    } catch (e) {
+      print('❌ Error checking/fixing user document: $e');
+      return false;
+    }
+  }
+
   String? validateEmail(String value) {
-    if (value.isEmpty || !value.contains('@')) {
+    if (value.isEmpty) {
+      return 'Email tidak boleh kosong';
+    }
+    if (!value.contains('@') || !value.contains('.')) {
       return 'Email tidak valid';
     }
     return null;
   }
 
   String? validatePassword(String value) {
-    if (value.isEmpty || value.length < 6) {
+    if (value.isEmpty) {
+      return 'Password tidak boleh kosong';
+    }
+    if (value.length < 6) {
       return 'Password minimal 6 karakter';
     }
     return null;
   }
+
+  String? validateName(String value) {
+    if (value.trim().isEmpty) {
+      return 'Nama tidak boleh kosong';
+    }
+    if (value.trim().length < 3) {
+      return 'Nama minimal 3 karakter';
+    }
+    return null;
+  }
+
+  // Sign out
+  Future<void> signOut() async {
+    try {
+      if (!kIsWeb) {
+        final GoogleSignIn googleSignIn = GoogleSignIn();
+        await googleSignIn.signOut();
+      }
+      await _auth.signOut();
+      print('✅ User signed out successfully');
+    } catch (e) {
+      print('❌ Error signing out: $e');
+      rethrow;
+    }
+  }
+
+  // Get current user
+  User? get currentUser => _auth.currentUser;
+
+  // Auth state changes stream
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 }

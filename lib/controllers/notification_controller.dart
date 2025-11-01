@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 enum NotificationType {
   comment,
   reply,
-  like,
 }
 
 class NotificationModel {
@@ -69,8 +68,6 @@ class NotificationModel {
         return NotificationType.comment;
       case 'reply':
         return NotificationType.reply;
-      case 'like':
-        return NotificationType.like;
       default:
         return NotificationType.comment;
     }
@@ -100,8 +97,6 @@ class NotificationModel {
         return "$actorName berkomentar di postingan Anda: \"${_truncateTitle(postTitle)}\"";
       case NotificationType.reply:
         return "$actorName membalas komentar Anda di: \"${_truncateTitle(postTitle)}\"";
-      case NotificationType.like:
-        return "$actorName menyukai postingan Anda: \"${_truncateTitle(postTitle)}\"";
     }
   }
 

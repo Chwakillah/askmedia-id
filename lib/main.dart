@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'views/login_view.dart';
+import 'views/auth_state_handler.dart';
 import 'themes/app_collors.dart';
 
 void main() async {
@@ -14,7 +13,7 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } else {
-    Firebase.app(); 
+    Firebase.app();
   }
 
   runApp(const MyApp());
@@ -22,22 +21,24 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Askademia',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        scaffoldBackgroundColor: AppColors.background,
         primaryColor: AppColors.primary,
+        scaffoldBackgroundColor: AppColors.background,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          primary: AppColors.primary,
+          secondary: AppColors.primaryLight,
+        ),
+        useMaterial3: true,
       ),
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const CircularProgressIndicator();
-          if (snapshot.hasData) return const LoginView(); 
-          return const LoginView();
-        },
-      ),
+      // Gunakan AuthStateHandler untuk handle auth state
+      home: const AuthStateHandler(),
     );
   }
 }

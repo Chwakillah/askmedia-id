@@ -106,7 +106,34 @@ class _NotificationViewState extends State<NotificationView> {
 
   Widget _buildLoadingState() {
     return Center(
-      child: CircularProgressIndicator(color: AppColors.primary),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+                strokeWidth: 2.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            "Memuat notifikasi...",
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -176,12 +203,11 @@ class _NotificationViewState extends State<NotificationView> {
           SnackBar(
             content: const Text('Notifikasi dihapus'),
             behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'BATAL',
-              onPressed: () {
-                // Could implement undo functionality here
-              },
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 2),
           ),
         );
       },
@@ -270,8 +296,6 @@ class _NotificationViewState extends State<NotificationView> {
         return Icons.comment;
       case NotificationType.reply:
         return Icons.reply;
-      case NotificationType.like:
-        return Icons.favorite;
     }
   }
 
@@ -281,8 +305,6 @@ class _NotificationViewState extends State<NotificationView> {
         return Colors.blue;
       case NotificationType.reply:
         return Colors.green;
-      case NotificationType.like:
-        return Colors.red;
     }
   }
 
@@ -293,7 +315,10 @@ class _NotificationViewState extends State<NotificationView> {
     // Navigate to post detail
     try {
       final posts = await _postController.fetchPosts();
-      final post = posts.firstWhere((p) => p.id == notification.postId);
+      final post = posts.firstWhere(
+        (p) => p.id == notification.postId,
+        orElse: () => throw Exception('Post not found'),
+      );
 
       if (mounted) {
         Navigator.push(
@@ -302,19 +327,33 @@ class _NotificationViewState extends State<NotificationView> {
             builder: (context) => PostDetailView(
               post: post,
               onPostUpdated: () {},
-              onPostDeleted: () {},
+              onPostDeleted: () {
+                if (mounted) Navigator.pop(context);
+              },
             ),
           ),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Postingan tidak ditemukan'),
-          backgroundColor: Colors.red[600],
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Postingan tidak ditemukan'),
+              ],
+            ),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
     }
   }
 
@@ -325,9 +364,19 @@ class _NotificationViewState extends State<NotificationView> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Semua notifikasi ditandai dibaca'),
+              content: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 12),
+                  Text('Semua notifikasi ditandai dibaca'),
+                ],
+              ),
               backgroundColor: Colors.green[600],
               behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              margin: const EdgeInsets.all(16),
             ),
           );
         }
@@ -339,9 +388,19 @@ class _NotificationViewState extends State<NotificationView> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text('Semua notifikasi dihapus'),
+                content: const Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.white),
+                    SizedBox(width: 12),
+                    Text('Semua notifikasi dihapus'),
+                  ],
+                ),
                 backgroundColor: Colors.green[600],
                 behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                margin: const EdgeInsets.all(16),
               ),
             );
           }
