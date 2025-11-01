@@ -8,20 +8,40 @@ import '../widget/rich_text_editor.dart';
 import '../widget/primmary_button.dart';
 import '../widget/markdown_text.dart';
 
-class CreatePostView extends StatefulWidget {
-  const CreatePostView({super.key});
+class EditPostView extends StatefulWidget {
+  final PostModel post;
+
+  const EditPostView({super.key, required this.post});
 
   @override
-  State<CreatePostView> createState() => _CreatePostViewState();
+  State<EditPostView> createState() => _EditPostViewState();
 }
 
-class _CreatePostViewState extends State<CreatePostView> {
+class _EditPostViewState extends State<EditPostView> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   final PostController _postController = PostController();
   bool _isLoading = false;
   bool _showPreview = false;
+  bool _hasChanges = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController.text = widget.post.title;
+    _contentController.text = widget.post.content;
+    
+    // Listen for changes
+    _titleController.addListener(_onTextChanged);
+    _contentController.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    if (!_hasChanges) {
+      setState(() => _hasChanges = true);
+    }
+  }
 
   @override
   void dispose() {
@@ -32,17 +52,68 @@ class _CreatePostViewState extends State<CreatePostView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: _buildAppBar(),
-      body: _buildBody(),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: _buildAppBar(),
+        body: _buildBody(),
+      ),
     );
+  }
+
+  Future<bool> _onWillPop() async {
+    if (!_hasChanges) return true;
+
+    final shouldPop = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text(
+          "Buang Perubahan?",
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: const Text(
+          "Anda memiliki perubahan yang belum disimpan. Yakin ingin keluar?",
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              "Batal",
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[600],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              "Buang",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return shouldPop ?? false;
   }
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       title: const Text(
-        "Buat Postingan",
+        "Edit Postingan",
         style: TextStyle(
           fontWeight: FontWeight.w600,
           color: Colors.black87,
@@ -56,7 +127,11 @@ class _CreatePostViewState extends State<CreatePostView> {
           Icons.close,
           color: Colors.grey[600],
         ),
-        onPressed: () => Navigator.pop(context),
+        onPressed: () async {
+          if (await _onWillPop()) {
+            Navigator.pop(context);
+          }
+        },
       ),
       actions: [
         IconButton(
@@ -104,10 +179,10 @@ class _CreatePostViewState extends State<CreatePostView> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.05),
+        color: Colors.orange.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.1),
+          color: Colors.orange.withOpacity(0.2),
         ),
       ),
       child: Row(
@@ -115,12 +190,12 @@ class _CreatePostViewState extends State<CreatePostView> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: Colors.orange.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              Icons.create,
-              color: AppColors.primary,
+            child: const Icon(
+              Icons.edit,
+              color: Colors.orange,
               size: 20,
             ),
           ),
@@ -130,7 +205,7 @@ class _CreatePostViewState extends State<CreatePostView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Buat Postingan Baru",
+                  "Edit Postingan",
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -138,7 +213,7 @@ class _CreatePostViewState extends State<CreatePostView> {
                   ),
                 ),
                 Text(
-                  "Bagikan ide dan pemikiran Anda dengan formatting",
+                  "Perbarui konten postingan Anda",
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -245,8 +320,8 @@ class _CreatePostViewState extends State<CreatePostView> {
     return SizedBox(
       width: double.infinity,
       child: PrimaryButton(
-        text: "Publikasikan",
-        onPressed: _isLoading ? null : _submitPost,
+        text: "Simpan Perubahan",
+        onPressed: (_isLoading || !_hasChanges) ? null : _submitPost,
         isLoading: _isLoading,
       ),
     );
@@ -258,6 +333,9 @@ class _CreatePostViewState extends State<CreatePostView> {
     }
     if (value.trim().length < 5) {
       return "Judul minimal 5 karakter";
+    }
+    if (value.trim().length > 200) {
+      return "Judul maksimal 200 karakter";
     }
     return null;
   }
@@ -273,34 +351,42 @@ class _CreatePostViewState extends State<CreatePostView> {
   }
 
   Future<void> _submitPost() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      _showErrorMessage("Mohon lengkapi semua field dengan benar");
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _showErrorMessage("Anda harus login terlebih dahulu");
+      return;
+    }
+
+    if (user.uid != widget.post.userId) {
+      _showErrorMessage("Anda tidak memiliki izin untuk mengedit postingan ini");
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        _showErrorMessage("Anda harus login terlebih dahulu");
-        return;
-      }
-
-      final newPost = PostModel(
-        id: '',
-        userId: user.uid,
-        title: _titleController.text.trim(),
-        content: _contentController.text.trim(),
-        authorEmail: user.email ?? '',
-        timestamp: DateTime.now().millisecondsSinceEpoch,
+      print('Updating post...');
+      
+      final success = await _postController.updatePost(
+        widget.post.id,
+        _titleController.text.trim(),
+        _contentController.text.trim(),
       );
 
-      await _postController.createPost(newPost);
-
-      if (mounted) {
-        Navigator.pop(context);
-        _showSuccessMessage("Postingan berhasil dipublikasikan");
+      if (success && mounted) {
+        Navigator.pop(context, true); // Return true to indicate success
+        _showSuccessMessage("Postingan berhasil diperbarui");
+      } else {
+        _showErrorMessage("Gagal memperbarui postingan");
       }
     } catch (error) {
-      _showErrorMessage("Gagal membuat postingan. Silakan coba lagi.");
+      print('Error updating post: $error');
+      _showErrorMessage("Terjadi kesalahan: ${error.toString()}");
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -309,21 +395,39 @@ class _CreatePostViewState extends State<CreatePostView> {
   }
 
   void _showSuccessMessage(String message) {
+    if (!mounted) return;
+    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
         backgroundColor: Colors.green[600],
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
 
   void _showErrorMessage(String message) {
+    if (!mounted) return;
+    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
         backgroundColor: Colors.red[600],
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/comment_model.dart';
 import '../themes/app_collors.dart';
+import '../widget/markdown_text.dart';
 
 class CommentCard extends StatelessWidget {
   final CommentModel comment;
@@ -77,9 +78,9 @@ class CommentCard extends StatelessWidget {
   Widget _buildCommentContent() {
     return Padding(
       padding: const EdgeInsets.only(left: 44),
-      child: Text(
-        comment.content,
-        style: const TextStyle(
+      child: MarkdownText(
+        text: comment.content,
+        baseStyle: const TextStyle(
           fontSize: 14,
           color: Colors.black87,
           height: 1.4,

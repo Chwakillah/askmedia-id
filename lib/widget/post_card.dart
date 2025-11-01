@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/post_model.dart';
 import '../themes/app_collors.dart';
+import '../widget/markdown_text.dart';
 
 class PostCard extends StatelessWidget {
   final PostModel post;
@@ -59,11 +60,11 @@ class PostCard extends StatelessWidget {
   }
 
   Widget _buildPostDescription() {
-    return Text(
-      post.content,
+    return MarkdownText(
+      text: post.content,
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
-      style: TextStyle(
+      baseStyle: TextStyle(
         fontSize: 14,
         color: Colors.grey[600],
         height: 1.5,

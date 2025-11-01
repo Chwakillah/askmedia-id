@@ -1,7 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/auth_result.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 
 class AuthController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -26,11 +27,51 @@ class AuthController {
 
   Future<AuthResult> loginWithGoogle() async {
     try {
-      final googleProvider = GoogleAuthProvider();
-      final userCredential = await _auth.signInWithProvider(googleProvider);
+      UserCredential userCredential;
+      
+      if (kIsWeb) {
+        // SOLUSI 1: Popup flow untuk web (paling reliable)
+        final googleProvider = GoogleAuthProvider();
+        userCredential = await _auth.signInWithPopup(googleProvider);
+      } else {
+        // SOLUSI 2: google_sign_in package untuk mobile
+        final GoogleSignIn googleSignIn = GoogleSignIn(
+          scopes: ['email'],
+        );
+        
+        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+        
+        if (googleUser == null) {
+          return AuthResult(user: null, error: 'Login dibatalkan.');
+        }
+        
+        final GoogleSignInAuthentication googleAuth = 
+            await googleUser.authentication;
+        
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        
+        userCredential = await _auth.signInWithCredential(credential);
+      }
+      
       return AuthResult(user: userCredential.user, error: null);
+      
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = 'Google login gagal.';
+      
+      if (e.code == 'popup-closed-by-user') {
+        errorMessage = 'Login dibatalkan.';
+      } else if (e.code == 'popup-blocked') {
+        errorMessage = 'Popup diblokir. Izinkan popup untuk situs ini.';
+      } else if (e.code == 'web-storage-unsupported') {
+        errorMessage = 'Browser tidak mendukung storage. Coba browser lain.';
+      }
+      
+      return AuthResult(user: null, error: errorMessage);
     } catch (e) {
-      return AuthResult(user: null, error: 'Google login gagal.');
+      return AuthResult(user: null, error: 'Terjadi kesalahan: ${e.toString()}');
     }
   }
   

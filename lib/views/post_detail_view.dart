@@ -6,6 +6,8 @@ import '../../../models/post_model.dart';
 import '../../../models/comment_model.dart';
 import '../themes/app_collors.dart';
 import '../widget/comment_card.dart';
+import '../widget/markdown_text.dart';
+import 'edit_post_view.dart';
 
 class PostDetailView extends StatefulWidget {
   final PostModel post;
@@ -29,14 +31,19 @@ class _PostDetailViewState extends State<PostDetailView> {
   final _inputController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
+  final _focusNode = FocusNode();
   
   bool _isLoadingComments = true;
   bool _isSubmittingComment = false;
+  bool _showFormattingTools = false;
+  bool _isExpanded = false;
   List<CommentModel> _comments = [];
+  late PostModel _currentPost;
 
   @override
   void initState() {
     super.initState();
+    _currentPost = widget.post;
     _loadComments();
   }
 
@@ -44,6 +51,7 @@ class _PostDetailViewState extends State<PostDetailView> {
   void dispose() {
     _inputController.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -76,7 +84,7 @@ class _PostDetailViewState extends State<PostDetailView> {
 
   PreferredSizeWidget _buildAppBar() {
     final user = FirebaseAuth.instance.currentUser;
-    final isOwner = user?.uid == widget.post.userId;
+    final isOwner = user?.uid == _currentPost.userId;
 
     return AppBar(
       title: const Text(
@@ -174,7 +182,7 @@ class _PostDetailViewState extends State<PostDetailView> {
   }
 
   Widget _buildPostHeader() {
-    final date = DateTime.fromMillisecondsSinceEpoch(widget.post.timestamp);
+    final date = DateTime.fromMillisecondsSinceEpoch(_currentPost.timestamp);
     final formattedDate = _formatPostDate(date);
 
     return Row(
@@ -197,7 +205,7 @@ class _PostDetailViewState extends State<PostDetailView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.post.authorEmail.split('@').first,
+                _currentPost.authorEmail.split('@').first,
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -220,7 +228,7 @@ class _PostDetailViewState extends State<PostDetailView> {
 
   Widget _buildPostTitle() {
     return Text(
-      widget.post.title,
+      _currentPost.title,
       style: const TextStyle(
         fontSize: 24,
         fontWeight: FontWeight.w700,
@@ -231,9 +239,9 @@ class _PostDetailViewState extends State<PostDetailView> {
   }
 
   Widget _buildPostDescription() {
-    return Text(
-      widget.post.content,
-      style: TextStyle(
+    return MarkdownText(
+      text: _currentPost.content,
+      baseStyle: TextStyle(
         fontSize: 16,
         color: Colors.grey[700],
         height: 1.6,
@@ -343,46 +351,276 @@ class _PostDetailViewState extends State<PostDetailView> {
   }
 
   Widget _buildCommentInput() {
-    return Container(
-      padding: const EdgeInsets.all(20),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_showFormattingTools) _buildFormattingToolbar(),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Format button
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          decoration: BoxDecoration(
+                            color: _showFormattingTools 
+                                ? AppColors.primary.withOpacity(0.1)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            onPressed: () {
+                              setState(() {
+                                _showFormattingTools = !_showFormattingTools;
+                              });
+                            },
+                            icon: Icon(
+                              _showFormattingTools 
+                                  ? Icons.keyboard_hide 
+                                  : Icons.text_format,
+                              color: _showFormattingTools 
+                                  ? AppColors.primary 
+                                  : Colors.grey[600],
+                            ),
+                            tooltip: _showFormattingTools 
+                                ? 'Sembunyikan Format' 
+                                : 'Tampilkan Format',
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Text input
+                        Expanded(
+                          child: Container(
+                            constraints: BoxConstraints(
+                              minHeight: 50,
+                              maxHeight: _isExpanded ? 200 : 120,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.inputBackground,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: _focusNode.hasFocus
+                                    ? AppColors.primary.withOpacity(0.3)
+                                    : Colors.transparent,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: TextFormField(
+                              controller: _inputController,
+                              focusNode: _focusNode,
+                              decoration: InputDecoration(
+                                hintText: "Tulis komentar Anda...",
+                                hintStyle: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 14,
+                                ),
+                                filled: false,
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
+                                ),
+                                suffixIcon: _inputController.text.isNotEmpty
+                                    ? IconButton(
+                                        icon: Icon(
+                                          Icons.clear,
+                                          color: Colors.grey[600],
+                                          size: 20,
+                                        ),
+                                        onPressed: () {
+                                          setState(() {
+                                            _inputController.clear();
+                                          });
+                                        },
+                                      )
+                                    : null,
+                              ),
+                              maxLines: null,
+                              minLines: 1,
+                              maxLength: 2000,
+                              validator: _validateComment,
+                              onChanged: (value) {
+                                setState(() {});
+                              },
+                              style: const TextStyle(
+                                fontSize: 14,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Send button
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          child: _buildSendButton(),
+                        ),
+                      ],
+                    ),
+                    // Expand/collapse button
+                    if (_inputController.text.length > 100)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _isExpanded = !_isExpanded;
+                            });
+                          },
+                          icon: Icon(
+                            _isExpanded 
+                                ? Icons.unfold_less 
+                                : Icons.unfold_more,
+                            size: 16,
+                          ),
+                          label: Text(
+                            _isExpanded ? 'Kecilkan' : 'Perbesar',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormattingToolbar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.05),
         border: Border(
-          top: BorderSide(
+          bottom: BorderSide(
             color: AppColors.inputBackground.withOpacity(0.5),
             width: 1,
           ),
         ),
       ),
-      child: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _inputController,
-                  decoration: InputDecoration(
-                    hintText: "Tulis komentar...",
-                    hintStyle: TextStyle(color: Colors.grey[500]),
-                    filled: true,
-                    fillColor: AppColors.inputBackground,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
-                  maxLines: null,
-                  validator: _validateComment,
+              Icon(
+                Icons.tips_and_updates,
+                size: 16,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                "Format Teks",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
                 ),
               ),
-              const SizedBox(width: 12),
-              _buildSendButton(),
             ],
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildToolButton(
+                  icon: Icons.format_bold,
+                  label: 'Bold',
+                  onPressed: () => _insertMarkdown('**', '**'),
+                ),
+                _buildToolButton(
+                  icon: Icons.format_italic,
+                  label: 'Italic',
+                  onPressed: () => _insertMarkdown('*', '*'),
+                ),
+                _buildToolButton(
+                  icon: Icons.format_underlined,
+                  label: 'Underline',
+                  onPressed: () => _insertMarkdown('__', '__'),
+                ),
+                _buildToolButton(
+                  icon: Icons.code,
+                  label: 'Code',
+                  onPressed: () => _insertMarkdown('`', '`'),
+                ),
+                _buildToolButton(
+                  icon: Icons.format_list_bulleted,
+                  label: 'List',
+                  onPressed: () => _insertLinePrefix('- '),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToolButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppColors.inputBackground.withOpacity(0.5),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: Colors.grey[700],
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -390,34 +628,106 @@ class _PostDetailViewState extends State<PostDetailView> {
   }
 
   Widget _buildSendButton() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.primary,
+    final hasText = _inputController.text.trim().isNotEmpty;
+    
+    return Material(
+      color: hasText 
+          ? AppColors.primary 
+          : Colors.grey[300],
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: (_isSubmittingComment || !hasText) ? null : _submitComment,
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: IconButton(
-        onPressed: _isSubmittingComment ? null : _submitComment,
-        icon: _isSubmittingComment
-            ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: _isSubmittingComment
+              ? const Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                )
+              : Icon(
+                  Icons.send_rounded,
+                  color: hasText ? Colors.white : Colors.grey[500],
+                  size: 22,
                 ),
-              )
-            : const Icon(
-                Icons.send,
-                color: Colors.white,
-                size: 20,
-              ),
+        ),
       ),
     );
+  }
+
+  void _insertMarkdown(String prefix, String suffix) {
+    final text = _inputController.text;
+    final selection = _inputController.selection;
+    
+    if (selection.isValid && selection.start != selection.end) {
+      final selectedText = selection.textInside(text);
+      final newText = text.replaceRange(
+        selection.start,
+        selection.end,
+        '$prefix$selectedText$suffix',
+      );
+      
+      _inputController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(
+          offset: selection.start + prefix.length + selectedText.length + suffix.length,
+        ),
+      );
+    } else {
+      final cursorPos = selection.baseOffset;
+      final newText = text.substring(0, cursorPos) + 
+                      prefix + 
+                      suffix + 
+                      text.substring(cursorPos);
+      
+      _inputController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(
+          offset: cursorPos + prefix.length,
+        ),
+      );
+    }
+    
+    _focusNode.requestFocus();
+  }
+
+  void _insertLinePrefix(String prefix) {
+    final text = _inputController.text;
+    final selection = _inputController.selection;
+    final cursorPos = selection.baseOffset;
+    
+    int lineStart = text.lastIndexOf('\n', cursorPos - 1) + 1;
+    
+    final newText = text.substring(0, lineStart) + 
+                    prefix + 
+                    text.substring(lineStart);
+    
+    _inputController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(
+        offset: cursorPos + prefix.length,
+      ),
+    );
+    
+    _focusNode.requestFocus();
   }
 
   String? _validateComment(String? value) {
     if (value == null || value.trim().isEmpty) {
       return "Komentar tidak boleh kosong";
+    }
+    if (value.trim().length > 2000) {
+      return "Komentar maksimal 2000 karakter";
     }
     return null;
   }
@@ -443,7 +753,7 @@ class _PostDetailViewState extends State<PostDetailView> {
     setState(() => _isLoadingComments = true);
     
     try {
-      final comments = await _commentController.getComments(widget.post.id);
+      final comments = await _commentController.getComments(_currentPost.id);
       if (mounted) {
         setState(() {
           _comments = comments;
@@ -470,8 +780,6 @@ class _PostDetailViewState extends State<PostDetailView> {
     setState(() => _isSubmittingComment = true);
 
     try {
-      // Assuming you have a way to get user nickname, 
-      // for now using email prefix as nickname
       final nickname = user.displayName ?? user.email?.split('@').first ?? 'Anonim';
       
       final comment = CommentModel(
@@ -482,11 +790,17 @@ class _PostDetailViewState extends State<PostDetailView> {
         timestamp: DateTime.now().millisecondsSinceEpoch,
       );
 
-      await _commentController.addComment(widget.post.id, comment);
+      await _commentController.addComment(_currentPost.id, comment);
       
       if (mounted) {
         _inputController.clear();
+        setState(() {
+          _showFormattingTools = false;
+          _isExpanded = false;
+        });
         await _loadComments();
+        
+        _showSuccessMessage("Komentar berhasil dikirim");
         
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (_scrollController.hasClients) {
@@ -518,9 +832,22 @@ class _PostDetailViewState extends State<PostDetailView> {
     }
   }
 
-  void _handleEditPost() {
-    // TODO: Implement edit functionality
-    _showInfoMessage("Fitur edit akan segera tersedia");
+  Future<void> _handleEditPost() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditPostView(post: _currentPost),
+      ),
+    );
+
+    if (result == true && mounted) {
+      // Reload post data
+      widget.onPostUpdated();
+      _showSuccessMessage("Postingan berhasil diperbarui");
+      
+      // Update local post (you might want to fetch fresh data from Firestore)
+      // For now, we'll trigger the parent callback
+    }
   }
 
   Future<void> _handleDeletePost() async {
@@ -528,7 +855,7 @@ class _PostDetailViewState extends State<PostDetailView> {
     if (!confirmed) return;
 
     try {
-      final success = await _postController.deletePost(widget.post.id);
+      final success = await _postController.deletePost(_currentPost.id);
       
       if (success && mounted) {
         widget.onPostDeleted();
@@ -600,12 +927,19 @@ class _PostDetailViewState extends State<PostDetailView> {
   void _showSuccessMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
         backgroundColor: Colors.green[600],
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -613,25 +947,19 @@ class _PostDetailViewState extends State<PostDetailView> {
   void _showErrorMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
         backgroundColor: Colors.red[600],
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
-      ),
-    );
-  }
-
-  void _showInfoMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
