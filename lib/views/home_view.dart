@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../controllers/post_controller.dart';
+import '../controllers/notification_controller.dart';
 import '../../../models/post_model.dart';
 import '../widget/post_card.dart';
 import '../themes/app_collors.dart';
 import '../views/create_post_view.dart';
 import '../views/post_detail_view.dart';
-// import '../profile/profile_view.dart';
+import '../views/profile_view.dart';
+import '../views/notification_view.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -16,6 +18,7 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   final PostController _postController = PostController();
+  final NotificationController _notificationController = NotificationController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _searchFocus = FocusNode();
 
@@ -113,7 +116,13 @@ class _HomeViewState extends State<HomeView> {
                           ],
                         ),
                       ),
-                      _buildProfileButton(),
+                      Row(
+                        children: [
+                          _buildNotificationButton(),
+                          const SizedBox(width: 12),
+                          _buildProfileButton(),
+                        ],
+                      ),
                     ],
                   ),
                 ],
@@ -125,12 +134,80 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+  Widget _buildNotificationButton() {
+    return StreamBuilder<int>(
+      stream: _notificationController.streamUnreadCount(),
+      builder: (context, snapshot) {
+        final unreadCount = snapshot.data ?? 0;
+
+        return Stack(
+          children: [
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NotificationView()),
+                );
+              },
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.inputBackground,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.inputBackground.withOpacity(0.5),
+                    width: 1,
+                  ),
+                ),
+                child: Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.grey[700],
+                  size: 20,
+                ),
+              ),
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.surfaceLight,
+                      width: 2,
+                    ),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 18,
+                    minHeight: 18,
+                  ),
+                  child: Text(
+                    unreadCount > 9 ? '9+' : unreadCount.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildProfileButton() {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const HomeView()),
+          MaterialPageRoute(builder: (_) => const ProfileView()),
         );
       },
       child: Container(

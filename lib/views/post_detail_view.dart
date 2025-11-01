@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../controllers/post_controller.dart';
 import '../../../controllers/comment_controller.dart';
+import '../../../controllers/bookmark_controller.dart';
+import '../../../controllers/notification_controller.dart';
 import '../../../models/post_model.dart';
 import '../../../models/comment_model.dart';
 import '../themes/app_collors.dart';
