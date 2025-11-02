@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../controllers/notification_controller.dart';
 import '../../../controllers/post_controller.dart';
-import '../../../models/post_model.dart';
 import '../themes/app_collors.dart';
 import 'post_detail_view.dart';
 

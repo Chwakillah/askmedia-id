@@ -3,6 +3,7 @@ class PostModel {
   final String title;
   final String content;
   final String authorEmail;
+  final String authorName;
   final String userId; 
   final int timestamp;
 
@@ -11,6 +12,7 @@ class PostModel {
     required this.title,
     required this.content,
     required this.authorEmail,
+    required this.authorName,
     required this.userId,
     required this.timestamp,
   });
@@ -21,6 +23,7 @@ class PostModel {
       title: map['title'] ?? '',
       content: map['content'] ?? '',
       authorEmail: map['authorEmail'] ?? '',
+      authorName: map['authorName'] ?? '',
       userId: map['userId'] ?? '', 
       timestamp: map['timestamp'] ?? 0,
     );
@@ -31,6 +34,7 @@ class PostModel {
       'title': title,
       'content': content,
       'authorEmail': authorEmail,
+      'authorName': authorName,
       'userId': userId, 
       'timestamp': timestamp,
     };

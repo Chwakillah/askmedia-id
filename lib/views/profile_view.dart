@@ -52,41 +52,73 @@ class _ProfileViewState extends State<ProfileView>
   }
 
   Future<void> _loadUserData() async {
-    setState(() => _isLoading = true);
+  setState(() => _isLoading = true);
 
-    try {
-      final user = await _userController.getCurrentUser();
-      if (user == null) {
-        if (mounted) {
-          _showErrorMessage("User tidak ditemukan");
-          setState(() => _isLoading = false);
-        }
-        return;
-      }
-
-      final allPosts = await _postController.fetchPosts();
-      final bookmarkedIds = await _bookmarkController.getBookmarkedPostIds();
-
-      if (mounted) {
-        setState(() {
-          _currentUser = user;
-          _userPosts = allPosts
-              .where((post) => post.userId == user.id)
-              .toList();
-          _bookmarkedPosts = allPosts
-              .where((post) => bookmarkedIds.contains(post.id))
-              .toList();
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      print('Error loading user data: $e');
-      if (mounted) {
-        setState(() => _isLoading = false);
-        _showErrorMessage("Gagal memuat data profil");
+  try {
+    // Try to get current user
+    var user = await _userController.getCurrentUser();
+    
+    // If user not found, try to create document
+    if (user == null) {
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        print('⚠️ User document not found, creating...');
+        await _userController.ensureUserDocument(firebaseUser);
+        // Try again after creating
+        user = await _userController.getCurrentUser();
       }
     }
+    
+    if (user == null) {
+      if (mounted) {
+        _showErrorMessage("User tidak ditemukan");
+        setState(() => _isLoading = false);
+      }
+      return;
+    }
+
+    // PENTING: Buat variable non-nullable SEBELUM memanggil async functions
+    final String userId = user.id;
+    final String userName = user.name;
+    final String userEmail = user.email;
+    final String userBio = user.bio;
+    final int userCreatedAt = user.createdAt;
+    final int userUpdatedAt = user.updatedAt;
+
+    final allPosts = await _postController.fetchPosts();
+    final bookmarkedIds = await _bookmarkController.getBookmarkedPostIds();
+
+    if (mounted) {
+      setState(() {
+        // Recreate UserModel dengan data yang sudah di-copy
+        _currentUser = UserModel(
+          id: userId,
+          name: userName,
+          email: userEmail,
+          bio: userBio,
+          createdAt: userCreatedAt,
+          updatedAt: userUpdatedAt,
+        );
+        
+        _userPosts = allPosts
+            .where((post) => post.userId == userId)
+            .toList();
+        
+        _bookmarkedPosts = allPosts
+            .where((post) => bookmarkedIds.contains(post.id))
+            .toList();
+        
+        _isLoading = false;
+      });
+    }
+  } catch (e) {
+    print('Error loading user data: $e');
+    if (mounted) {
+      setState(() => _isLoading = false);
+      _showErrorMessage("Gagal memuat data profil");
+    }
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -521,14 +553,18 @@ class _ProfileViewState extends State<ProfileView>
 
     if (confirmed == true && mounted) {
       try {
+        // Sign out dari Firebase Auth (sudah include Google sign out)
         await FirebaseAuth.instance.signOut();
+        
         if (mounted) {
+          // Pop semua routes dan kembali ke login
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const LoginView()),
             (route) => false,
           );
         }
       } catch (e) {
+        print('❌ Error during logout: $e');
         _showErrorMessage("Gagal keluar. Silakan coba lagi.");
       }
     }

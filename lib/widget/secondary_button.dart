@@ -3,18 +3,39 @@ import '../themes/app_collors.dart';
 
 class SecondaryButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool isOutlined;
+  final IconData? icon;
 
   const SecondaryButton({
     super.key,
     required this.text,
     required this.onPressed,
     this.isOutlined = false,
+    this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
+    final child = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, color: AppColors.primary, size: 20),
+          const SizedBox(width: 8),
+        ],
+        Text(
+          text,
+          style: const TextStyle(
+            color: AppColors.primary,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+
     if (isOutlined) {
       return SizedBox(
         width: double.infinity,
@@ -27,14 +48,7 @@ class SecondaryButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: AppColors.primary,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          child: child,
         ),
       );
     }
@@ -44,14 +58,7 @@ class SecondaryButton extends StatelessWidget {
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 12),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: AppColors.primary,
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
+      child: child,
     );
   }
 }

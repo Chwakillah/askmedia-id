@@ -290,6 +290,7 @@ class _CreatePostViewState extends State<CreatePostView> {
         title: _titleController.text.trim(),
         content: _contentController.text.trim(),
         authorEmail: user.email ?? '',
+        authorName: user.displayName ?? '',
         timestamp: DateTime.now().millisecondsSinceEpoch,
       );
 

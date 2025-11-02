@@ -232,13 +232,16 @@ class _PostCardState extends State<PostCard> {
         ),
         const SizedBox(width: 4),
         Text(
-          widget.post.authorEmail,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+  widget.post.authorName.isNotEmpty
+      ? widget.post.authorName
+      : 'Pengguna', // fallback kalau kosong
+  style: TextStyle(
+    fontSize: 12,
+    color: Colors.grey[600],
+    fontWeight: FontWeight.w500,
+  ),
+),
+
         const SizedBox(width: 12),
         Icon(
           Icons.access_time,

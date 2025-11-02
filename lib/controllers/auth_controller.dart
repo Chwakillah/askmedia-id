@@ -46,8 +46,12 @@ class AuthController {
 
       final user = userCredential.user;
       if (user != null) {
+        // Cek verifikasi email
         if (!user.emailVerified) {
-          return AuthResult(user: null, error: 'Email belum diverifikasi.');
+          return AuthResult(
+            user: user,
+            error: 'Email belum diverifikasi. Silakan verifikasi email Anda terlebih dahulu.',
+          );
         }
 
         // Ensure user document exists
@@ -66,6 +70,8 @@ class AuthController {
         errorMessage = 'Format email tidak valid.';
       } else if (e.code == 'user-disabled') {
         errorMessage = 'Akun ini telah dinonaktifkan.';
+      } else if (e.code == 'invalid-credential') {
+        errorMessage = 'Email atau password salah.';
       }
 
       return AuthResult(user: null, error: errorMessage);
@@ -79,14 +85,17 @@ class AuthController {
       UserCredential userCredential;
       
       if (kIsWeb) {
-        // Popup flow untuk web
         final googleProvider = GoogleAuthProvider();
+        googleProvider.setCustomParameters({
+          'prompt': 'select_account',
+        });
         userCredential = await _auth.signInWithPopup(googleProvider);
       } else {
-        // google_sign_in package untuk mobile
         final GoogleSignIn googleSignIn = GoogleSignIn(
           scopes: ['email'],
         );
+        
+        await googleSignIn.signOut();
         
         final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
         
@@ -107,7 +116,6 @@ class AuthController {
       
       final user = userCredential.user;
       if (user != null) {
-        // PENTING: Ensure user document exists setelah Google login
         await _ensureUserDocument(user);
       }
       
@@ -161,6 +169,7 @@ class AuthController {
 
         // Send email verification
         await user.sendEmailVerification();
+        print('📧 Verification email sent to: ${user.email}');
       }
 
       return AuthResult(user: user, error: null);
@@ -247,6 +256,5 @@ class AuthController {
   // Get current user
   User? get currentUser => _auth.currentUser;
 
-  // Auth state changes stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 }

@@ -52,8 +52,13 @@ class _LoginViewState extends State<LoginView> {
         // Ensure user document exists
         await _userController.ensureUserDocument(result.user!);
         
-        _showSuccessMessage('Login berhasil! Selamat datang kembali.');
+        _showSuccessMessage('Email verifikasi sudah dikirim!');
+        
+        // Wait a bit for Firestore sync and feedback to show
+        await Future.delayed(const Duration(milliseconds: 800));
+        
         // AuthStateHandler akan otomatis navigate ke HomeView
+        // Tidak perlu manual navigation di sini
       } else {
         _showErrorMessage(result.error ?? 'Login gagal. Silakan coba lagi.');
       }
@@ -81,7 +86,12 @@ class _LoginViewState extends State<LoginView> {
         await _userController.ensureUserDocument(result.user!);
         
         _showSuccessMessage('Login Google berhasil!');
+        
+        // Wait a bit for Firestore sync and feedback to show
+        await Future.delayed(const Duration(milliseconds: 800));
+        
         // AuthStateHandler akan otomatis navigate ke HomeView
+        // Tidak perlu manual navigation di sini
       } else {
         _showErrorMessage(result.error ?? 'Login Google gagal. Silakan coba lagi.');
       }
