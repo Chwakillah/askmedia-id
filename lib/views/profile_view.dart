@@ -77,7 +77,6 @@ class _ProfileViewState extends State<ProfileView>
       return;
     }
 
-    // PENTING: Buat variable non-nullable SEBELUM memanggil async functions
     final String userId = user.id;
     final String userName = user.name;
     final String userEmail = user.email;
@@ -90,7 +89,6 @@ class _ProfileViewState extends State<ProfileView>
 
     if (mounted) {
       setState(() {
-        // Recreate UserModel dengan data yang sudah di-copy
         _currentUser = UserModel(
           id: userId,
           name: userName,

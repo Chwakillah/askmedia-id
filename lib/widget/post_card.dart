@@ -48,7 +48,9 @@ class _PostCardState extends State<PostCard> {
     setState(() => _isTogglingBookmark = true);
 
     try {
-      final newStatus = await _bookmarkController.toggleBookmark(widget.post.id);
+      final newStatus = await _bookmarkController.toggleBookmark(
+        widget.post.id,
+      );
       if (mounted) {
         setState(() {
           _isBookmarked = newStatus;
@@ -66,7 +68,11 @@ class _PostCardState extends State<PostCard> {
                   size: 20,
                 ),
                 const SizedBox(width: 12),
-                Text(newStatus ? 'Ditambahkan ke tersimpan' : 'Dihapus dari tersimpan'),
+                Text(
+                  newStatus
+                      ? 'Ditambahkan ke tersimpan'
+                      : 'Dihapus dari tersimpan',
+                ),
               ],
             ),
             backgroundColor: newStatus ? Colors.green[600] : Colors.grey[700],
@@ -186,24 +192,26 @@ class _PostCardState extends State<PostCard> {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: _isBookmarked
-                ? AppColors.primary.withOpacity(0.1)
-                : Colors.transparent,
+            color:
+                _isBookmarked
+                    ? AppColors.primary.withOpacity(0.1)
+                    : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: _isTogglingBookmark
-              ? Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.primary,
+          child:
+              _isTogglingBookmark
+                  ? Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.primary,
+                    ),
+                  )
+                  : Icon(
+                    _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                    size: 20,
+                    color: _isBookmarked ? AppColors.primary : Colors.grey[600],
                   ),
-                )
-              : Icon(
-                  _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                  size: 20,
-                  color: _isBookmarked ? AppColors.primary : Colors.grey[600],
-                ),
         ),
       ),
     );
@@ -214,47 +222,32 @@ class _PostCardState extends State<PostCard> {
       text: widget.post.content,
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
-      baseStyle: TextStyle(
-        fontSize: 14,
-        color: Colors.grey[600],
-        height: 1.5,
-      ),
+      baseStyle: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5),
     );
   }
 
   Widget _buildPostMeta() {
     return Row(
       children: [
-        Icon(
-          Icons.person_outline,
-          size: 14,
-          color: Colors.grey[500],
-        ),
+        Icon(Icons.person_outline, size: 14, color: Colors.grey[500]),
         const SizedBox(width: 4),
         Text(
-  widget.post.authorName.isNotEmpty
-      ? widget.post.authorName
-      : 'Pengguna', // fallback kalau kosong
-  style: TextStyle(
-    fontSize: 12,
-    color: Colors.grey[600],
-    fontWeight: FontWeight.w500,
-  ),
-),
-
-        const SizedBox(width: 12),
-        Icon(
-          Icons.access_time,
-          size: 14,
-          color: Colors.grey[500],
-        ),
-        const SizedBox(width: 4),
-        Text(
-          widget.post.formattedTime,
+          widget.post.authorName.isNotEmpty
+              ? widget.post.authorName
+              : 'Pengguna',
           style: TextStyle(
             fontSize: 12,
             color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
           ),
+        ),
+
+        const SizedBox(width: 12),
+        Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
+        const SizedBox(width: 4),
+        Text(
+          widget.post.formattedTime,
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
         ),
       ],
     );

@@ -285,59 +285,64 @@ class _PostDetailViewState extends State<PostDetailView> {
   }
 
   Widget _buildPostHeader() {
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.primary,
-                AppColors.primary.withOpacity(0.7),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              widget.post.authorEmail.substring(0, 1).toUpperCase(),
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.post.authorEmail,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              Text(
-                widget.post.formattedTime,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-              ),
+  // Gunakan authorName, fallback ke email jika kosong
+  final displayName = widget.post.authorName.isNotEmpty 
+      ? widget.post.authorName 
+      : widget.post.authorEmail;
+  
+  return Row(
+    children: [
+      Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary,
+              AppColors.primary.withOpacity(0.7),
             ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(
+            displayName.substring(0, 1).toUpperCase(), // ✅ Gunakan displayName
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
-      ],
-    );
-  }
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              displayName,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            Text(
+              widget.post.formattedTime,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
 
   Widget _buildPostTitle() {
     return Text(

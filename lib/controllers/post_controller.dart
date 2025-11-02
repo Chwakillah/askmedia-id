@@ -21,9 +21,18 @@ class PostController {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
 
+    final userDoc = await _firestore
+        .collection('users')
+        .doc(currentUser.uid)
+        .get();
+    
+    final userData = userDoc.data();
+    final userName = userData?['name'] ?? currentUser.displayName ?? 'Pengguna';
+
     await _firestore.collection(_collection).add({
-      'userId': currentUser.uid, 
-      'authorEmail': currentUser.email,
+      'userId': currentUser.uid,
+      'authorEmail': currentUser.email ?? '',
+      'authorName': userName,
       'title': post.title,
       'content': post.content,
       'timestamp': post.timestamp,
