@@ -285,64 +285,59 @@ class _PostDetailViewState extends State<PostDetailView> {
   }
 
   Widget _buildPostHeader() {
-  // Gunakan authorName, fallback ke email jika kosong
-  final displayName = widget.post.authorName.isNotEmpty 
-      ? widget.post.authorName 
-      : widget.post.authorEmail;
-  
-  return Row(
-    children: [
-      Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppColors.primary,
-              AppColors.primary.withOpacity(0.7),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          shape: BoxShape.circle,
-        ),
-        child: Center(
-          child: Text(
-            displayName.substring(0, 1).toUpperCase(), // ✅ Gunakan displayName
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primary,
+                AppColors.primary.withOpacity(0.7),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+            shape: BoxShape.circle,
           ),
-        ),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              displayName,
+          child: Center(
+            child: Text(
+              widget.post.authorEmail.substring(0, 1).toUpperCase(),
               style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
-            Text(
-              widget.post.formattedTime,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
-    ],
-  );
-}
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.post.authorEmail,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                widget.post.formattedTime,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildPostTitle() {
     return Text(
@@ -597,59 +592,52 @@ class _PostDetailViewState extends State<PostDetailView> {
   }
 
   Future<void> _submitComment() async {
-  final content = _commentTextController.text.trim();
-  if (content.isEmpty || _isSubmittingComment) return;
+    final content = _commentTextController.text.trim();
+    if (content.isEmpty || _isSubmittingComment) return;
 
-  setState(() => _isSubmittingComment = true);
+    setState(() => _isSubmittingComment = true);
 
-  try {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
-      _showErrorMessage("Silakan login terlebih dahulu");
-      return;
-    }
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        _showErrorMessage("Silakan login terlebih dahulu");
+        return;
+      }
 
-    final comment = CommentModel(
-      id: '',
-      userId: currentUser.uid,
-      userNickname: _currentUserName ?? 'User',
-      content: content,
-      timestamp: DateTime.now().millisecondsSinceEpoch,
-    );
+      final comment = CommentModel(
+        id: '',
+        userId: currentUser.uid,
+        userNickname: _currentUserName ?? 'User',
+        content: content,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+      );
 
-    await _commentController.addComment(widget.post.id, comment);
+      await _commentController.addComment(widget.post.id, comment);
 
-    // Create notification for post author
-    await _notificationController.createCommentNotification(
-      postId: widget.post.id,
-      postTitle: widget.post.title,
-      postAuthorId: widget.post.userId,
-      commenterId: currentUser.uid,
-      commenterName: _currentUserName ?? 'User',
-    );
+      // Create notification for post author
+      await _notificationController.createCommentNotification(
+        postId: widget.post.id,
+        postTitle: widget.post.title,
+        postAuthorId: widget.post.userId,
+        commenterId: currentUser.uid,
+        commenterName: _currentUserName ?? 'User',
+      );
 
-    await _notificationController.createBookmarkCommentNotification(
-      postId: widget.post.id,
-      postTitle: widget.post.title,
-      commenterId: currentUser.uid,
-      commenterName: _currentUserName ?? 'User',
-    );
+      _commentTextController.clear();
+      _commentFocus.unfocus();
+      await _loadComments();
 
-    _commentTextController.clear();
-    _commentFocus.unfocus();
-    await _loadComments();
-
-    if (mounted) {
-      _showSuccessMessage('Komentar berhasil ditambahkan');
-    }
-  } catch (e) {
-    _showErrorMessage('Gagal menambahkan komentar');
-  } finally {
-    if (mounted) {
-      setState(() => _isSubmittingComment = false);
+      if (mounted) {
+        _showSuccessMessage('Komentar berhasil ditambahkan');
+      }
+    } catch (e) {
+      _showErrorMessage('Gagal menambahkan komentar');
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmittingComment = false);
+      }
     }
   }
-}
 
   void _handleMenuSelection(String value) {
     switch (value) {

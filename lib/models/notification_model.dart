@@ -1,76 +1,100 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+// models/notification_model.dart
 
 class NotificationModel {
   final String id;
-  final String userId; 
-  final String actorId; 
-  final String actorName;
+  final String userId; // Penerima notifikasi
+  final String type; // 'comment', 'bookmark_comment', dll
   final String postId;
   final String postTitle;
-  final String type; 
-  final String content;
-  final bool isRead;
+  final String actorId; // Yang melakukan aksi (komentator)
+  final String actorName;
+  final String message;
   final int timestamp;
+  final bool isRead;
 
   NotificationModel({
     required this.id,
     required this.userId,
-    required this.actorId,
-    required this.actorName,
+    required this.type,
     required this.postId,
     required this.postTitle,
-    required this.type,
-    required this.content,
-    required this.isRead,
+    required this.actorId,
+    required this.actorName,
+    required this.message,
     required this.timestamp,
+    this.isRead = false,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'userId': userId,
-      'actorId': actorId,
-      'actorName': actorName,
+      'type': type,
       'postId': postId,
       'postTitle': postTitle,
-      'type': type,
-      'content': content,
+      'actorId': actorId,
+      'actorName': actorName,
+      'message': message,
+      'timestamp': timestamp,
       'isRead': isRead,
-      'timestamp': FieldValue.serverTimestamp(),
     };
   }
 
   factory NotificationModel.fromMap(String id, Map<String, dynamic> map) {
-    final rawTs = map['timestamp'];
-    int ts;
-    if (rawTs is Timestamp) {
-      ts = rawTs.millisecondsSinceEpoch;
-    } else if (rawTs is int) {
-      ts = rawTs;
-    } else {
-      ts = DateTime.now().millisecondsSinceEpoch;
-    }
-
     return NotificationModel(
       id: id,
       userId: map['userId'] ?? '',
-      actorId: map['actorId'] ?? '',
-      actorName: map['actorName'] ?? '',
+      type: map['type'] ?? '',
       postId: map['postId'] ?? '',
       postTitle: map['postTitle'] ?? '',
-      type: map['type'] ?? 'comment',
-      content: map['content'] ?? '',
+      actorId: map['actorId'] ?? '',
+      actorName: map['actorName'] ?? 'Pengguna',
+      message: map['message'] ?? '',
+      timestamp: map['timestamp'] ?? 0,
       isRead: map['isRead'] ?? false,
-      timestamp: ts,
     );
   }
 
   String get formattedTime {
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
     final now = DateTime.now();
-    final diff = now.difference(date);
-    if (diff.inDays > 0) return '${diff.inDays} hari lalu';
-    if (diff.inHours > 0) return '${diff.inHours} jam lalu';
-    if (diff.inMinutes > 0) return '${diff.inMinutes} menit lalu';
-    return 'Baru saja';
+    final difference = now.difference(date);
+
+    if (difference.inDays > 7) {
+      return '${difference.inDays ~/ 7} minggu lalu';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays} hari lalu';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} jam lalu';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} menit lalu';
+    } else {
+      return 'Baru saja';
+    }
+  }
+
+  NotificationModel copyWith({
+    String? id,
+    String? userId,
+    String? type,
+    String? postId,
+    String? postTitle,
+    String? actorId,
+    String? actorName,
+    String? message,
+    int? timestamp,
+    bool? isRead,
+  }) {
+    return NotificationModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      type: type ?? this.type,
+      postId: postId ?? this.postId,
+      postTitle: postTitle ?? this.postTitle,
+      actorId: actorId ?? this.actorId,
+      actorName: actorName ?? this.actorName,
+      message: message ?? this.message,
+      timestamp: timestamp ?? this.timestamp,
+      isRead: isRead ?? this.isRead,
+    );
   }
 }
