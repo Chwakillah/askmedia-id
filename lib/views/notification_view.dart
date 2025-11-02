@@ -12,7 +12,8 @@ class NotificationView extends StatefulWidget {
 }
 
 class _NotificationViewState extends State<NotificationView> {
-  final NotificationController _notificationController = NotificationController();
+  final NotificationController _notificationController =
+      NotificationController();
   final PostController _postController = PostController();
 
   @override
@@ -28,10 +29,7 @@ class _NotificationViewState extends State<NotificationView> {
     return AppBar(
       title: const Text(
         'Notifikasi',
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
+        style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
       ),
       backgroundColor: AppColors.cardBackground,
       elevation: 0,
@@ -47,31 +45,36 @@ class _NotificationViewState extends State<NotificationView> {
             borderRadius: BorderRadius.circular(12),
           ),
           onSelected: _handleMenuSelection,
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'mark_all_read',
-              child: Row(
-                children: [
-                  Icon(Icons.done_all, size: 18, color: Colors.grey[600]),
-                  const SizedBox(width: 12),
-                  const Text("Tandai Semua Dibaca"),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: 'clear_all',
-              child: Row(
-                children: [
-                  const Icon(Icons.delete_sweep, size: 18, color: Colors.red),
-                  const SizedBox(width: 12),
-                  const Text(
-                    "Hapus Semua",
-                    style: TextStyle(color: Colors.red),
+          itemBuilder:
+              (context) => [
+                PopupMenuItem(
+                  value: 'mark_all_read',
+                  child: Row(
+                    children: [
+                      Icon(Icons.done_all, size: 18, color: Colors.grey[600]),
+                      const SizedBox(width: 12),
+                      const Text("Tandai Semua Dibaca"),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          ],
+                ),
+                PopupMenuItem(
+                  value: 'clear_all',
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.delete_sweep,
+                        size: 18,
+                        color: Colors.red,
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        "Hapus Semua",
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
         ),
       ],
     );
@@ -167,11 +170,8 @@ class _NotificationViewState extends State<NotificationView> {
             ),
             const SizedBox(height: 12),
             Text(
-              "Notifikasi akan muncul ketika ada yang berkomentar di postingan Anda",
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              "Notifikasi akan muncul ketika ada yang berkomentar di postingan atau bookmark Anda",
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
           ],
@@ -191,10 +191,7 @@ class _NotificationViewState extends State<NotificationView> {
           color: Colors.red[600],
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(
-          Icons.delete,
-          color: Colors.white,
-        ),
+        child: const Icon(Icons.delete, color: Colors.white),
       ),
       onDismissed: (direction) {
         _notificationController.deleteNotification(notification.id);
@@ -218,14 +215,16 @@ class _NotificationViewState extends State<NotificationView> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: notification.isRead
-                  ? AppColors.cardBackground
-                  : AppColors.primary.withOpacity(0.05),
+              color:
+                  notification.isRead
+                      ? AppColors.cardBackground
+                      : AppColors.primary.withOpacity(0.05),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: notification.isRead
-                    ? AppColors.inputBackground.withOpacity(0.3)
-                    : AppColors.primary.withOpacity(0.2),
+                color:
+                    notification.isRead
+                        ? AppColors.inputBackground.withOpacity(0.3)
+                        : AppColors.primary.withOpacity(0.2),
                 width: 1,
               ),
             ),
@@ -236,7 +235,9 @@ class _NotificationViewState extends State<NotificationView> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: _getNotificationColor(notification.type).withOpacity(0.1),
+                    color: _getNotificationColor(
+                      notification.type,
+                    ).withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -255,19 +256,17 @@ class _NotificationViewState extends State<NotificationView> {
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.black87,
-                          fontWeight: notification.isRead
-                              ? FontWeight.normal
-                              : FontWeight.w600,
+                          fontWeight:
+                              notification.isRead
+                                  ? FontWeight.normal
+                                  : FontWeight.w600,
                           height: 1.4,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         notification.formattedTime,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -295,6 +294,8 @@ class _NotificationViewState extends State<NotificationView> {
         return Icons.comment;
       case NotificationType.reply:
         return Icons.reply;
+      case NotificationType.bookmarkComment:
+        return Icons.bookmark;
     }
   }
 
@@ -304,6 +305,8 @@ class _NotificationViewState extends State<NotificationView> {
         return Colors.blue;
       case NotificationType.reply:
         return Colors.green;
+      case NotificationType.bookmarkComment:
+        return Colors.orange;
     }
   }
 
@@ -323,13 +326,14 @@ class _NotificationViewState extends State<NotificationView> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => PostDetailView(
-              post: post,
-              onPostUpdated: () {},
-              onPostDeleted: () {
-                if (mounted) Navigator.pop(context);
-              },
-            ),
+            builder:
+                (context) => PostDetailView(
+                  post: post,
+                  onPostUpdated: () {},
+                  onPostDeleted: () {
+                    if (mounted) Navigator.pop(context);
+                  },
+                ),
           ),
         );
       }
@@ -410,45 +414,44 @@ class _NotificationViewState extends State<NotificationView> {
 
   Future<bool> _showClearConfirmation() async {
     return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text(
-          "Hapus Semua Notifikasi?",
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: const Text(
-          "Semua notifikasi akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.",
-          style: TextStyle(fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              "Batal",
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red[600],
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                title: const Text(
+                  "Hapus Semua Notifikasi?",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                content: const Text(
+                  "Semua notifikasi akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.",
+                  style: TextStyle(fontSize: 14),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(
+                      "Batal",
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red[600],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      "Hapus Semua",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            child: const Text(
-              "Hapus Semua",
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
 }

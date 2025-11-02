@@ -597,52 +597,59 @@ class _PostDetailViewState extends State<PostDetailView> {
   }
 
   Future<void> _submitComment() async {
-    final content = _commentTextController.text.trim();
-    if (content.isEmpty || _isSubmittingComment) return;
+  final content = _commentTextController.text.trim();
+  if (content.isEmpty || _isSubmittingComment) return;
 
-    setState(() => _isSubmittingComment = true);
+  setState(() => _isSubmittingComment = true);
 
-    try {
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) {
-        _showErrorMessage("Silakan login terlebih dahulu");
-        return;
-      }
+  try {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      _showErrorMessage("Silakan login terlebih dahulu");
+      return;
+    }
 
-      final comment = CommentModel(
-        id: '',
-        userId: currentUser.uid,
-        userNickname: _currentUserName ?? 'User',
-        content: content,
-        timestamp: DateTime.now().millisecondsSinceEpoch,
-      );
+    final comment = CommentModel(
+      id: '',
+      userId: currentUser.uid,
+      userNickname: _currentUserName ?? 'User',
+      content: content,
+      timestamp: DateTime.now().millisecondsSinceEpoch,
+    );
 
-      await _commentController.addComment(widget.post.id, comment);
+    await _commentController.addComment(widget.post.id, comment);
 
-      // Create notification for post author
-      await _notificationController.createCommentNotification(
-        postId: widget.post.id,
-        postTitle: widget.post.title,
-        postAuthorId: widget.post.userId,
-        commenterId: currentUser.uid,
-        commenterName: _currentUserName ?? 'User',
-      );
+    // Create notification for post author
+    await _notificationController.createCommentNotification(
+      postId: widget.post.id,
+      postTitle: widget.post.title,
+      postAuthorId: widget.post.userId,
+      commenterId: currentUser.uid,
+      commenterName: _currentUserName ?? 'User',
+    );
 
-      _commentTextController.clear();
-      _commentFocus.unfocus();
-      await _loadComments();
+    await _notificationController.createBookmarkCommentNotification(
+      postId: widget.post.id,
+      postTitle: widget.post.title,
+      commenterId: currentUser.uid,
+      commenterName: _currentUserName ?? 'User',
+    );
 
-      if (mounted) {
-        _showSuccessMessage('Komentar berhasil ditambahkan');
-      }
-    } catch (e) {
-      _showErrorMessage('Gagal menambahkan komentar');
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmittingComment = false);
-      }
+    _commentTextController.clear();
+    _commentFocus.unfocus();
+    await _loadComments();
+
+    if (mounted) {
+      _showSuccessMessage('Komentar berhasil ditambahkan');
+    }
+  } catch (e) {
+    _showErrorMessage('Gagal menambahkan komentar');
+  } finally {
+    if (mounted) {
+      setState(() => _isSubmittingComment = false);
     }
   }
+}
 
   void _handleMenuSelection(String value) {
     switch (value) {

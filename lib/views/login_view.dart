@@ -49,16 +49,12 @@ class _LoginViewState extends State<LoginView> {
       if (!mounted) return;
 
       if (result.user != null) {
-        // Ensure user document exists
         await _userController.ensureUserDocument(result.user!);
         
         _showSuccessMessage('Email verifikasi sudah dikirim!');
         
-        // Wait a bit for Firestore sync and feedback to show
         await Future.delayed(const Duration(milliseconds: 800));
         
-        // AuthStateHandler akan otomatis navigate ke HomeView
-        // Tidak perlu manual navigation di sini
       } else {
         _showErrorMessage(result.error ?? 'Login gagal. Silakan coba lagi.');
       }

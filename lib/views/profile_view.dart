@@ -3,12 +3,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../controllers/user_controller.dart';
 import '../../../controllers/post_controller.dart';
 import '../../../controllers/bookmark_controller.dart';
+import '../../../controllers/event_controller.dart';
+import '../../../controllers/event_bookmark_controller.dart';
 import '../../../models/user_model.dart';
 import '../../../models/post_model.dart';
+import '../../../models/event_model.dart';
 import '../themes/app_collors.dart';
 import '../widget/post_card.dart';
+import '../widget/event_card.dart';
 import 'edit_profile_view.dart';
 import 'post_detail_view.dart';
+import 'event_detail_view.dart';
 import 'login_view.dart';
 
 class ProfileView extends StatefulWidget {
@@ -23,18 +28,21 @@ class _ProfileViewState extends State<ProfileView>
   final UserController _userController = UserController();
   final PostController _postController = PostController();
   final BookmarkController _bookmarkController = BookmarkController();
+  final EventController _eventController = EventController();
+  final EventBookmarkController _eventBookmarkController = EventBookmarkController();
 
   late TabController _tabController;
   UserModel? _currentUser;
   List<PostModel> _userPosts = [];
   List<PostModel> _bookmarkedPosts = [];
+  List<EventModel> _bookmarkedEvents = [];
   bool _isLoading = true;
   int _selectedTab = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this); 
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {
@@ -52,71 +60,76 @@ class _ProfileViewState extends State<ProfileView>
   }
 
   Future<void> _loadUserData() async {
-  setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-  try {
-    // Try to get current user
-    var user = await _userController.getCurrentUser();
-    
-    // If user not found, try to create document
-    if (user == null) {
-      final firebaseUser = FirebaseAuth.instance.currentUser;
-      if (firebaseUser != null) {
-        print('⚠️ User document not found, creating...');
-        await _userController.ensureUserDocument(firebaseUser);
-        // Try again after creating
-        user = await _userController.getCurrentUser();
+    try {
+      // Try to get current user
+      var user = await _userController.getCurrentUser();
+      
+      if (user == null) {
+        final firebaseUser = FirebaseAuth.instance.currentUser;
+        if (firebaseUser != null) {
+          await _userController.ensureUserDocument(firebaseUser);
+          user = await _userController.getCurrentUser();
+        }
       }
-    }
-    
-    if (user == null) {
+      
+      if (user == null) {
+        if (mounted) {
+          _showErrorMessage("User tidak ditemukan");
+          setState(() => _isLoading = false);
+        }
+        return;
+      }
+
+      final String userId = user.id;
+      final String userName = user.name;
+      final String userEmail = user.email;
+      final String userBio = user.bio;
+      final int userCreatedAt = user.createdAt;
+      final int userUpdatedAt = user.updatedAt;
+
+      final allPosts = await _postController.fetchPosts();
+      final bookmarkedIds = await _bookmarkController.getBookmarkedPostIds();
+      
+      final allEvents = await _eventController.fetchEvents();
+      final bookmarkedEventIds = await _eventBookmarkController.getBookmarkedEventIds();
+
       if (mounted) {
-        _showErrorMessage("User tidak ditemukan");
-        setState(() => _isLoading = false);
+        setState(() {
+          _currentUser = UserModel(
+            id: userId,
+            name: userName,
+            email: userEmail,
+            bio: userBio,
+            createdAt: userCreatedAt,
+            updatedAt: userUpdatedAt,
+          );
+          
+          _userPosts = allPosts
+              .where((post) => post.userId == userId)
+              .toList();
+          
+          _bookmarkedPosts = allPosts
+              .where((post) => bookmarkedIds.contains(post.id))
+              .toList();
+          
+          // TAMBAHKAN: Filter bookmarked events
+          _bookmarkedEvents = allEvents
+              .where((event) => bookmarkedEventIds.contains(event.id))
+              .toList();
+          
+          _isLoading = false;
+        });
       }
-      return;
-    }
-
-    final String userId = user.id;
-    final String userName = user.name;
-    final String userEmail = user.email;
-    final String userBio = user.bio;
-    final int userCreatedAt = user.createdAt;
-    final int userUpdatedAt = user.updatedAt;
-
-    final allPosts = await _postController.fetchPosts();
-    final bookmarkedIds = await _bookmarkController.getBookmarkedPostIds();
-
-    if (mounted) {
-      setState(() {
-        _currentUser = UserModel(
-          id: userId,
-          name: userName,
-          email: userEmail,
-          bio: userBio,
-          createdAt: userCreatedAt,
-          updatedAt: userUpdatedAt,
-        );
-        
-        _userPosts = allPosts
-            .where((post) => post.userId == userId)
-            .toList();
-        
-        _bookmarkedPosts = allPosts
-            .where((post) => bookmarkedIds.contains(post.id))
-            .toList();
-        
-        _isLoading = false;
-      });
-    }
-  } catch (e) {
-    print('Error loading user data: $e');
-    if (mounted) {
-      setState(() => _isLoading = false);
-      _showErrorMessage("Gagal memuat data profil");
+    } catch (e) {
+      print('Error loading user data: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showErrorMessage("Gagal memuat data profil");
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -311,7 +324,7 @@ class _ProfileViewState extends State<ProfileView>
               ),
             ],
             const SizedBox(height: 24),
-            // Stats
+            // Stats - TAMBAHKAN EVENT BOOKMARKS
             Container(
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
@@ -322,7 +335,7 @@ class _ProfileViewState extends State<ProfileView>
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _buildStatItem(
-                    label: 'Postingan',
+                    label: 'Postingan Saya',
                     value: _userPosts.length.toString(),
                     icon: Icons.article_outlined,
                   ),
@@ -332,9 +345,19 @@ class _ProfileViewState extends State<ProfileView>
                     color: Colors.grey[300],
                   ),
                   _buildStatItem(
-                    label: 'Tersimpan',
+                    label: 'Post Disimpan',
                     value: _bookmarkedPosts.length.toString(),
                     icon: Icons.bookmark_outline,
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Colors.grey[300],
+                  ),
+                  _buildStatItem(
+                    label: 'Event Disimpan',
+                    value: _bookmarkedEvents.length.toString(),
+                    icon: Icons.event_available_outlined,
                   ),
                 ],
               ),
@@ -355,12 +378,12 @@ class _ProfileViewState extends State<ProfileView>
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 20, color: AppColors.primary),
+            Icon(icon, size: 18, color: AppColors.primary),
             const SizedBox(width: 6),
             Text(
               value,
               style: const TextStyle(
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.w700,
                 color: Colors.black87,
               ),
@@ -371,7 +394,7 @@ class _ProfileViewState extends State<ProfileView>
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 11,
             color: Colors.grey[600],
             fontWeight: FontWeight.w500,
           ),
@@ -391,12 +414,13 @@ class _ProfileViewState extends State<ProfileView>
           labelColor: AppColors.primary,
           unselectedLabelColor: Colors.grey[600],
           labelStyle: const TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.w600,
           ),
           tabs: const [
             Tab(text: 'Postingan Saya'),
-            Tab(text: 'Tersimpan'),
+            Tab(text: 'Post Disimpan'),
+            Tab(text: 'Event Disimpan'), 
           ],
         ),
       ),
@@ -404,35 +428,105 @@ class _ProfileViewState extends State<ProfileView>
   }
 
   Widget _buildTabContent() {
-    final posts = _selectedTab == 0 ? _userPosts : _bookmarkedPosts;
-
-    if (posts.isEmpty) {
-      return SliverFillRemaining(
-        child: _buildEmptyState(),
+    if (_selectedTab == 0) {
+      // Postingan Saya
+      if (_userPosts.isEmpty) {
+        return SliverFillRemaining(child: _buildEmptyState(0));
+      }
+      
+      return SliverPadding(
+        padding: const EdgeInsets.all(20),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: PostCard(
+                  post: _userPosts[index],
+                  onTap: () => _navigateToPostDetail(_userPosts[index]),
+                ),
+              );
+            },
+            childCount: _userPosts.length,
+          ),
+        ),
+      );
+    } else if (_selectedTab == 1) {
+      // Post Tersimpan
+      if (_bookmarkedPosts.isEmpty) {
+        return SliverFillRemaining(child: _buildEmptyState(1));
+      }
+      
+      return SliverPadding(
+        padding: const EdgeInsets.all(20),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: PostCard(
+                  post: _bookmarkedPosts[index],
+                  onTap: () => _navigateToPostDetail(_bookmarkedPosts[index]),
+                ),
+              );
+            },
+            childCount: _bookmarkedPosts.length,
+          ),
+        ),
+      );
+    } else {
+      // Event Tersimpan
+      if (_bookmarkedEvents.isEmpty) {
+        return SliverFillRemaining(child: _buildEmptyState(2));
+      }
+      
+      return SliverPadding(
+        padding: const EdgeInsets.all(20),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: EventCard(
+                  event: _bookmarkedEvents[index],
+                  onTap: () => _navigateToEventDetail(_bookmarkedEvents[index]),
+                ),
+              );
+            },
+            childCount: _bookmarkedEvents.length,
+          ),
+        ),
       );
     }
-
-    return SliverPadding(
-      padding: const EdgeInsets.all(20),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: PostCard(
-                post: posts[index],
-                onTap: () => _navigateToPostDetail(posts[index]),
-              ),
-            );
-          },
-          childCount: posts.length,
-        ),
-      ),
-    );
   }
 
-  Widget _buildEmptyState() {
-    final isUserPosts = _selectedTab == 0;
+  Widget _buildEmptyState(int tabIndex) {
+    IconData icon;
+    String title;
+    String subtitle;
+    
+    switch (tabIndex) {
+      case 0:
+        icon = Icons.article_outlined;
+        title = "Belum ada postingan";
+        subtitle = "Mulai berbagi pengetahuan Anda dengan komunitas";
+        break;
+      case 1:
+        icon = Icons.bookmark_outline;
+        title = "Belum ada postingan tersimpan";
+        subtitle = "Simpan postingan menarik untuk dibaca nanti";
+        break;
+      case 2:
+        icon = Icons.event_available_outlined;
+        title = "Belum ada event tersimpan";
+        subtitle = "Simpan event menarik untuk diikuti nanti";
+        break;
+      default:
+        icon = Icons.inbox_outlined;
+        title = "Kosong";
+        subtitle = "";
+    }
+    
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -447,16 +541,14 @@ class _ProfileViewState extends State<ProfileView>
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                isUserPosts ? Icons.article_outlined : Icons.bookmark_outline,
+                icon,
                 size: 40,
                 color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 24),
             Text(
-              isUserPosts
-                  ? "Belum ada postingan"
-                  : "Belum ada postingan tersimpan",
+              title,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -465,9 +557,7 @@ class _ProfileViewState extends State<ProfileView>
             ),
             const SizedBox(height: 12),
             Text(
-              isUserPosts
-                  ? "Mulai berbagi pengetahuan Anda dengan komunitas"
-                  : "Simpan postingan menarik untuk dibaca nanti",
+              subtitle,
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],
@@ -551,11 +641,9 @@ class _ProfileViewState extends State<ProfileView>
 
     if (confirmed == true && mounted) {
       try {
-        // Sign out dari Firebase Auth (sudah include Google sign out)
         await FirebaseAuth.instance.signOut();
         
         if (mounted) {
-          // Pop semua routes dan kembali ke login
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const LoginView()),
             (route) => false,
@@ -576,6 +664,19 @@ class _ProfileViewState extends State<ProfileView>
           post: post,
           onPostUpdated: _loadUserData,
           onPostDeleted: _loadUserData,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _navigateToEventDetail(EventModel event) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EventDetailView(
+          event: event,
+          onEventUpdated: _loadUserData,
+          onEventDeleted: _loadUserData,
         ),
       ),
     );
@@ -604,7 +705,6 @@ class _ProfileViewState extends State<ProfileView>
   }
 }
 
-// Custom TabBar Delegate
 class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
 

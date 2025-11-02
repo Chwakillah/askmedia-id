@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 enum NotificationType {
   comment,
   reply,
+  bookmarkComment, 
 }
 
 class NotificationModel {
@@ -68,6 +69,8 @@ class NotificationModel {
         return NotificationType.comment;
       case 'reply':
         return NotificationType.reply;
+      case 'bookmarkComment':
+        return NotificationType.bookmarkComment;
       default:
         return NotificationType.comment;
     }
@@ -97,6 +100,8 @@ class NotificationModel {
         return "$actorName berkomentar di postingan Anda: \"${_truncateTitle(postTitle)}\"";
       case NotificationType.reply:
         return "$actorName membalas komentar Anda di: \"${_truncateTitle(postTitle)}\"";
+      case NotificationType.bookmarkComment:
+        return "$actorName berkomentar di postingan yang Anda simpan: \"${_truncateTitle(postTitle)}\"";
     }
   }
 
@@ -137,6 +142,46 @@ class NotificationController {
       print('Comment notification created for user: $postAuthorId');
     } catch (e) {
       print('Error creating comment notification: $e');
+    }
+  }
+
+  // 🆕 NEW: Create notification for users who bookmarked the post
+  Future<void> createBookmarkCommentNotification({
+    required String postId,
+    required String postTitle,
+    required String commenterId,
+    required String commenterName,
+  }) async {
+    try {
+      // Get all users who bookmarked this post
+      final bookmarksSnapshot = await _firestore
+          .collection('bookmarks')
+          .where('postId', isEqualTo: postId)
+          .get();
+
+      // Create notification for each user who bookmarked (except the commenter)
+      for (var doc in bookmarksSnapshot.docs) {
+        final bookmarkUserId = doc.data()['userId'];
+        
+        // Skip if the commenter bookmarked their own post
+        if (bookmarkUserId == commenterId) continue;
+
+        await _firestore.collection(_collection).add({
+          'userId': bookmarkUserId,
+          'actorId': commenterId,
+          'actorName': commenterName,
+          'postId': postId,
+          'postTitle': postTitle,
+          'type': 'bookmarkComment',
+          'content': '',
+          'isRead': false,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+        print('Bookmark comment notification created for user: $bookmarkUserId');
+      }
+    } catch (e) {
+      print('Error creating bookmark comment notification: $e');
     }
   }
 
