@@ -6,7 +6,7 @@ Askademia adalah aplikasi forum online yang dibuat khusus untuk mahasiswa. Di pl
 
 ## 🎯 Chosen SDG: SDG 4 – Quality Education
 
-**Justification:** Askademia mendukung tujuan SDG 4 dengan menyediakan platform inklusif dan partisipatif yang memungkinkan mahasiswa berbagi pengetahuan, berdiskusi tentang tantangan akademik, serta saling membantu dalam mencapai keberhasilan pendidikan tinggi.
+Justification: Askademia mendukung tujuan SDG 4 dengan menyediakan platform inklusif dan partisipatif yang memungkinkan mahasiswa berbagi pengetahuan, berdiskusi tentang tantangan akademik, serta saling membantu dalam mencapai keberhasilan pendidikan tinggi.
 ---
 
 ## 🚀 Features
@@ -65,17 +65,13 @@ Aplikasi menggunakan pola **Model–View–Controller (MVC)** untuk memastikan s
    flutter run
    ```
 
-5. **Build APK**
+## 📱 APK Download Links
+| Architecture | Download Link |
+|---------------|----------------|
+| ARM64 (v8a) | [Download](https://drive.google.com/drive/folders/1d24WY0Ch3GZAWO0uxDWf4KnyxZe-rggA?usp=sharing) |
+| ARM32 (v7a) | [Download](https://drive.google.com/drive/folders/1d24WY0Ch3GZAWO0uxDWf4KnyxZe-rggA?usp=sharing) |
+| x86_64 | [Download](https://drive.google.com/drive/folders/1d24WY0Ch3GZAWO0uxDWf4KnyxZe-rggA?usp=sharing) |
 
-   ```bash
-   flutter build apk --split-per-abi
-   ```
-
-   Akan menghasilkan:
-
-   * `app-armeabi-v7a-release.apk`
-   * `app-arm64-v8a-release.apk`
-   * `app-x86_64-release.apk`
 ---
 
 ## 🧠 Key Technical Implementations
@@ -83,19 +79,7 @@ Aplikasi menggunakan pola **Model–View–Controller (MVC)** untuk memastikan s
 * **Firebase Authentication** untuk login/register.
 * **Firestore Database** untuk menyimpan postingan, komentar, bookmark, dan data info.
 * **MVC Pattern** untuk menjaga pemisahan antara UI, logic, dan data.
-* **Responsive Design** dengan `MediaQuery` dan `LayoutBuilder`.
 * **Error Handling & Toast Feedback** agar pengguna mendapat umpan balik yang jelas.
-* **Bookmarking Logic** menyimpan ID postingan dalam koleksi user.
-* **Info Corner (Pojok Info)** menampilkan data dari koleksi Firestore `infos`, dengan opsi membuka link eksternal via `url_launcher`.
-
----
-
-## 🧑‍💻 Developer
-
-**Nama:** Syakillah Nachwa
-**Universitas:** Universitas Sriwijaya
-**Divisi:** Mobile Development – GDG on Campus UNSRI
-**Tahun:** 2025
 
 ---
 
