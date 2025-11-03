@@ -10,7 +10,6 @@ class BookmarkController {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        print('No authenticated user');
         return false;
       }
 
@@ -25,7 +24,6 @@ class BookmarkController {
       if (doc.exists) {
         // Remove bookmark
         await bookmarkRef.delete();
-        print('Bookmark removed for post: $postId');
         return false;
       } else {
         // Add bookmark
@@ -33,11 +31,9 @@ class BookmarkController {
           'postId': postId,
           'timestamp': FieldValue.serverTimestamp(),
         });
-        print('Bookmark added for post: $postId');
         return true;
       }
     } catch (e) {
-      print('Error toggling bookmark: $e');
       return false;
     }
   }
@@ -57,7 +53,6 @@ class BookmarkController {
 
       return doc.exists;
     } catch (e) {
-      print('Error checking bookmark: $e');
       return false;
     }
   }
@@ -77,7 +72,6 @@ class BookmarkController {
 
       return snapshot.docs.map((doc) => doc.id).toList();
     } catch (e) {
-      print('Error getting bookmarked posts: $e');
       return [];
     }
   }
@@ -110,7 +104,6 @@ class BookmarkController {
 
       return snapshot.docs.length;
     } catch (e) {
-      print('Error getting bookmark count: $e');
       return 0;
     }
   }
@@ -133,9 +126,7 @@ class BookmarkController {
       }
 
       await batch.commit();
-      print('All bookmarks cleared');
     } catch (e) {
-      print('Error clearing bookmarks: $e');
     }
   }
 }

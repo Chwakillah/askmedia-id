@@ -9,7 +9,6 @@ class EventBookmarkController {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        print('No authenticated user');
         return false;
       }
 
@@ -24,7 +23,6 @@ class EventBookmarkController {
       if (doc.exists) {
         // Remove bookmark
         await bookmarkRef.delete();
-        print('Event bookmark removed: $eventId');
         return false;
       } else {
         // Add bookmark
@@ -32,11 +30,9 @@ class EventBookmarkController {
           'eventId': eventId,
           'timestamp': FieldValue.serverTimestamp(),
         });
-        print('Event bookmark added: $eventId');
         return true;
       }
     } catch (e) {
-      print('Error toggling event bookmark: $e');
       return false;
     }
   }
@@ -74,7 +70,6 @@ class EventBookmarkController {
 
       return snapshot.docs.map((doc) => doc.id).toList();
     } catch (e) {
-      print('Error getting bookmarked events: $e');
       return [];
     }
   }

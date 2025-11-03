@@ -149,7 +149,6 @@ class PostController {
         return PostModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
       }).toList();
     } catch (e) {
-      print('Error fetching user posts: $e');
       rethrow;
     }
   }
@@ -174,7 +173,7 @@ class PostController {
                post.authorName.toLowerCase().contains(searchQuery);
       }).toList();
     } catch (e) {
-      print('Error searching posts: $e');
+
       rethrow;
     }
   }

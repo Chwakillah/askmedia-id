@@ -68,9 +68,7 @@ Aplikasi menggunakan pola **Model–View–Controller (MVC)** untuk memastikan s
 ## 📱 APK Download Links
 | Architecture | Download Link |
 |---------------|----------------|
-| ARM64 (v8a) | [Download](https://drive.google.com/drive/folders/1d24WY0Ch3GZAWO0uxDWf4KnyxZe-rggA?usp=sharing) |
-| ARM32 (v7a) | [Download](https://drive.google.com/drive/folders/1d24WY0Ch3GZAWO0uxDWf4KnyxZe-rggA?usp=sharing) |
-| x86_64 | [Download](https://drive.google.com/drive/folders/1d24WY0Ch3GZAWO0uxDWf4KnyxZe-rggA?usp=sharing) |
+| Download Here | [Download](https://github.com/Chwakillah/askmedia-id/releases/tag/askademia) |
 
 ---
 
